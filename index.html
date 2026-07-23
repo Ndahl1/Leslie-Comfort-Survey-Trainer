@@ -1,0 +1,780 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Leslie Comfort Survey Trainer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@500;600;700&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --brown:#3D3733;      /* PMS 412 */
+    --terra:#A9604F;      /* PMS 7524 */
+    --sage:#789F90;       /* PMS 624 */
+    --tan:#DDB58A;        /* PMS 721 */
+    --khaki:#D9D3A6;      /* PMS 614 */
+    --orange:#C0652B;     /* PMS 7618 */
+    --maroon:#6B3A3C;     /* PMS 7610 */
+    --slate:#89948F;      /* PMS 444 */
+    --paper:#F6F2E7;
+    --card:#FFFDF6;
+    --line:#E4DCC9;
+    --ink:#332E2A;
+    --muted:#7C746B;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    font-family:'Public Sans',system-ui,-apple-system,sans-serif;
+    background:var(--paper); color:var(--ink);
+    font-size:15px; line-height:1.55;
+  }
+  h1,h2,h3,.slab{font-family:'Zilla Slab',Georgia,serif}
+  button{font-family:inherit;cursor:pointer;border:none}
+  button:focus-visible,textarea:focus-visible,input:focus-visible{outline:3px solid var(--orange);outline-offset:2px}
+  @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+  /* ---------- top bar ---------- */
+  .topbar{
+    background:var(--brown); color:var(--paper);
+    padding:12px 20px; display:flex; align-items:center; gap:14px;
+    position:sticky; top:0; z-index:50;
+  }
+  .topbar .mark{
+    width:34px;height:34px;border-radius:50%;
+    background:var(--terra); color:#fff; display:grid;place-items:center;
+    font-family:'Zilla Slab',serif; font-weight:700; font-size:19px; flex:none;
+  }
+  .topbar h1{font-size:19px;font-weight:600;letter-spacing:.2px}
+  .topbar .sub{font-size:12px;color:var(--tan);margin-top:-2px}
+  .topbar .spacer{flex:1}
+  .topbar .pill{
+    background:rgba(255,255,255,.12); color:var(--paper);
+    border:1px solid rgba(255,255,255,.25); border-radius:999px;
+    padding:5px 14px; font-size:13px; font-weight:600;
+  }
+  .topbar .pill:hover{background:rgba(255,255,255,.22)}
+
+  /* ---------- screens ---------- */
+  .screen{display:none; max-width:1180px; margin:0 auto; padding:28px 20px 60px}
+  .screen.active{display:block}
+
+  /* ---------- setup ---------- */
+  .lede{max-width:640px;margin-bottom:26px}
+  .lede h2{font-size:30px;font-weight:700;color:var(--brown);margin-bottom:8px}
+  .lede p{color:var(--muted)}
+  .setup-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin-bottom:26px}
+  .persona{
+    background:var(--card); border:2px solid var(--line); border-radius:14px;
+    padding:18px 16px; text-align:left; transition:border-color .15s, transform .15s;
+    display:flex; flex-direction:column; gap:6px;
+  }
+  .persona:hover{border-color:var(--tan); transform:translateY(-2px)}
+  .persona.selected{border-color:var(--orange); box-shadow:0 0 0 3px rgba(192,101,43,.15)}
+  .persona .tag{
+    align-self:flex-start; font-size:11px; font-weight:700; letter-spacing:.6px;
+    text-transform:uppercase; padding:3px 9px; border-radius:999px; color:#fff;
+  }
+  .persona h3{font-size:19px;color:var(--brown)}
+  .persona p{font-size:13px;color:var(--muted)}
+  .row{display:flex;flex-wrap:wrap;gap:14px;align-items:center;margin-bottom:22px}
+  .mode-toggle{display:flex;background:var(--card);border:2px solid var(--line);border-radius:999px;overflow:hidden}
+  .mode-toggle button{background:transparent;padding:9px 20px;font-size:14px;font-weight:600;color:var(--muted)}
+  .mode-toggle button.on{background:var(--sage);color:#fff}
+  .name-wrap input{
+    background:var(--card);border:2px solid var(--line);border-radius:10px;
+    padding:9px 14px;font-size:14px;font-family:inherit;color:var(--ink);width:220px;
+  }
+  .go{
+    background:var(--orange); color:#fff; font-size:16px; font-weight:700;
+    padding:13px 34px; border-radius:12px; letter-spacing:.2px;
+  }
+  .go:hover{background:var(--maroon)}
+  .go:disabled{background:var(--slate);cursor:not-allowed}
+  .hint{font-size:13px;color:var(--muted);margin-top:10px;max-width:560px}
+
+  /* ---------- session layout ---------- */
+  .session-grid{display:grid;grid-template-columns:1fr 330px;gap:20px;align-items:start}
+  @media(max-width:900px){.session-grid{grid-template-columns:1fr}}
+
+  .table{ /* the kitchen table: transcript */
+    background:var(--card); border:1px solid var(--line); border-radius:16px;
+    display:flex; flex-direction:column; min-height:70vh; overflow:hidden;
+  }
+  .table-head{
+    background:var(--khaki); padding:10px 18px; display:flex; align-items:center; gap:10px;
+    border-bottom:1px solid var(--line); font-size:13px; color:var(--brown); font-weight:600;
+  }
+  .table-head .dot{width:9px;height:9px;border-radius:50%;background:var(--sage)}
+  .feed{flex:1; overflow-y:auto; padding:20px 22px; display:flex; flex-direction:column; gap:14px}
+
+  .msg{max-width:82%; border-radius:14px; padding:12px 15px; font-size:14.5px; white-space:pre-wrap}
+  .msg .who{font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;margin-bottom:4px;opacity:.75}
+  .msg.consultant{align-self:flex-end; background:var(--brown); color:var(--paper); border-bottom-right-radius:4px}
+  .msg.consultant .who{color:var(--tan)}
+  .msg.customer{align-self:flex-start; background:#EFE8D6; border:1px solid var(--line); border-bottom-left-radius:4px}
+  .msg.customer .who{color:var(--maroon)}
+  .msg.coach{
+    align-self:stretch; max-width:100%;
+    background:#F1F5F1; border-left:4px solid var(--sage); border-radius:8px;
+    font-size:13.5px; color:#3F5249;
+  }
+  .msg.coach .who{color:var(--sage)}
+  .msg.system{align-self:center;background:transparent;color:var(--muted);font-size:13px;text-align:center;max-width:90%}
+  .msg.debrief{align-self:stretch;max-width:100%;background:#FBF6E9;border:1px solid var(--tan);border-radius:12px}
+  .msg.debrief .who{color:var(--orange)}
+  .msg.error{align-self:center;background:#F7E8E4;border:1px solid var(--terra);color:var(--maroon);font-size:13.5px}
+
+  .typing{align-self:flex-start;color:var(--muted);font-size:13px;font-style:italic;display:none}
+  .typing.show{display:block}
+
+  .composer{border-top:1px solid var(--line); padding:14px 16px; display:flex; gap:10px; background:var(--card)}
+  .composer textarea{
+    flex:1; resize:none; border:2px solid var(--line); border-radius:12px;
+    padding:11px 14px; font-family:inherit; font-size:14.5px; color:var(--ink);
+    background:var(--paper); min-height:52px; max-height:160px;
+  }
+  .composer button{
+    background:var(--terra); color:#fff; font-weight:700; font-size:14px;
+    border-radius:12px; padding:0 22px;
+  }
+  .composer button:hover{background:var(--maroon)}
+  .composer button:disabled{background:var(--slate)}
+  .end-row{display:flex;justify-content:space-between;align-items:center;padding:10px 16px;background:var(--card);border-top:1px dashed var(--line)}
+  .end-row .note{font-size:12px;color:var(--muted)}
+  .endbtn{background:transparent;border:2px solid var(--maroon)!important;color:var(--maroon);font-weight:700;font-size:13px;border-radius:999px;padding:7px 16px;border-style:solid}
+  .endbtn:hover{background:var(--maroon);color:#fff}
+
+  /* ---------- the notepad scorecard ---------- */
+  .notepad{
+    background:#FBF6E9;
+    border:1px solid var(--tan);
+    border-radius:4px 14px 14px 14px;
+    box-shadow:0 3px 0 rgba(61,55,51,.08);
+    padding:0 0 14px; overflow:hidden; position:sticky; top:74px;
+  }
+  .notepad::before{content:"";display:block;height:10px;background:repeating-linear-gradient(90deg,var(--terra) 0 14px,transparent 14px 24px);opacity:.5}
+  .notepad h3{padding:12px 18px 2px;color:var(--brown);font-size:18px}
+  .notepad .np-sub{padding:0 18px 10px;font-size:12px;color:var(--muted);border-bottom:1px solid var(--line)}
+  .qrow{
+    display:flex; align-items:center; gap:8px;
+    padding:8px 14px 8px 18px; border-bottom:1px dotted var(--line);
+    font-size:13.5px;
+  }
+  .qrow.current{background:rgba(120,159,144,.14)}
+  .qrow .q-name{flex:1;color:var(--ink)}
+  .qrow.current .q-name{font-weight:700;color:var(--brown)}
+  .qrow .score{
+    font-family:'Zilla Slab',serif;font-weight:700;font-size:14px;
+    width:38px;text-align:right;color:var(--slate);
+  }
+  .qrow .score.scored{color:var(--brown)}
+  .qrow .star,.qrow .ask{width:20px;text-align:center;font-size:15px;color:#CFC6B2}
+  .qrow .star.on{color:var(--orange)}
+  .qrow .ask.on{color:var(--sage);font-weight:800}
+  .np-legend{display:flex;gap:14px;padding:8px 18px 4px;font-size:11px;color:var(--muted)}
+  .np-beats{padding:10px 14px 0 18px;display:flex;flex-wrap:wrap;gap:6px}
+  .beat{
+    font-size:11px;font-weight:600;padding:4px 10px;border-radius:999px;
+    background:#EFE8D6;color:var(--muted);border:1px solid var(--line);
+  }
+  .beat.on{background:var(--sage);color:#fff;border-color:var(--sage)}
+  .np-total{padding:12px 18px 0;display:flex;align-items:baseline;gap:8px}
+  .np-total .n{font-family:'Zilla Slab',serif;font-size:30px;font-weight:700;color:var(--brown)}
+  .np-total .d{font-size:13px;color:var(--muted)}
+
+  /* ---------- history ---------- */
+  .hist-list{display:flex;flex-direction:column;gap:10px;max-width:720px}
+  .hist-item{
+    background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:14px 18px;display:flex;align-items:center;gap:16px;
+  }
+  .hist-item .slab{font-size:17px;color:var(--brown)}
+  .hist-item .meta{font-size:12.5px;color:var(--muted)}
+  .hist-item .score-big{margin-left:auto;font-family:'Zilla Slab',serif;font-size:24px;font-weight:700;color:var(--terra)}
+  .empty{color:var(--muted);font-size:14px;padding:30px 0}
+  .backlink{background:transparent;color:var(--maroon);font-weight:700;font-size:14px;text-decoration:underline;margin-bottom:18px}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="mark">L</div>
+  <div>
+    <h1>Comfort Survey Trainer</h1>
+    <div class="sub">Leslie Heating, Cooling, Plumbing &amp; Electric · Ride-along in a box</div>
+  </div>
+  <div class="spacer"></div>
+  <button class="pill" id="btnNew" onclick="resetToSetup()" style="display:none">New run</button>
+</div>
+
+<!-- ============ SETUP ============ -->
+<div class="screen active" id="scrSetup">
+  <div class="lede">
+    <h2>Pick your kitchen table.</h2>
+    <p>You're the comfort consultant. The customer is played live — short first answers, buried pains, real objections. Every star, every trial close, every beat gets scored the way a ride-along coach would score it.</p>
+  </div>
+
+  <div class="setup-grid" id="personaGrid">
+    <button class="persona" data-p="rick" onclick="pickPersona(this)">
+      <span class="tag" style="background:var(--sage)">Warm-up</span>
+      <h3>Rick &amp; Karen</h3>
+      <p>Naperville empty-nesters, 22 years in a 2,000 sq ft colonial. Forever home. Warm — but the pains are buried under "we've gotten used to it."</p>
+    </button>
+    <button class="persona" data-p="dave" onclick="pickPersona(this)">
+      <span class="tag" style="background:var(--orange)">Harder</span>
+      <h3>Dave (&amp; Priya, absent)</h3>
+      <p>Bolingbrook ranch, two bids in a folder, wants you to "beat a number." The real decision-maker is at work. Rushes everything.</p>
+    </button>
+    <button class="persona" data-p="elaine" onclick="pickPersona(this)">
+      <span class="tag" style="background:var(--maroon)">Hardest</span>
+      <h3>Elaine</h3>
+      <p>Widowed retiree in Wheaton, 34 years in the house. Fixed income, afraid of being sold. Punishes pressure hard — rewards patience.</p>
+    </button>
+    <button class="persona" data-p="surprise" onclick="pickPersona(this)">
+      <span class="tag" style="background:var(--slate)">Random</span>
+      <h3>Surprise me</h3>
+      <p>A brand-new customer is invented for this run — new home, new family, new hidden pains. No two are alike.</p>
+    </button>
+  </div>
+
+  <div class="row">
+    <div class="mode-toggle" role="group" aria-label="Coaching mode">
+      <button id="modeLive" class="on" onclick="setMode('live')">Live coaching</button>
+      <button id="modeClean" onclick="setMode('clean')">Clean run</button>
+    </div>
+    <div class="name-wrap">
+      <input id="inpName" type="text" placeholder="Your name (shows on the coach sheet)" maxlength="40">
+    </div>
+    <div class="name-wrap">
+      <input id="inpCode" type="password" placeholder="Team code" maxlength="60" autocomplete="off">
+    </div>
+  </div>
+
+  <button class="go" id="btnStart" onclick="startSession()" disabled>Knock on the door</button>
+  <p class="hint" id="modeHint">Live coaching: the coach breaks in after every exchange — names the technique, quotes your line, gives the fix. Best while the beats are still new.</p>
+</div>
+
+<!-- ============ SESSION ============ -->
+<div class="screen" id="scrSession">
+  <div class="session-grid">
+    <div class="table">
+      <div class="table-head"><span class="dot"></span><span id="sessTitle">At the kitchen table</span></div>
+      <div class="feed" id="feed"></div>
+      <div class="typing" id="typing" style="padding:0 22px 10px">the customer is thinking…</div>
+      <div class="composer">
+        <textarea id="inpMsg" placeholder="Say it like you're in the room…" rows="2"
+          onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMsg();}"></textarea>
+        <button id="btnMic" onclick="toggleMic()" title="Speak your line" aria-label="Dictate with microphone" style="min-width:52px;font-size:19px">🎤</button>
+        <button id="btnSend" onclick="sendMsg()">Say it</button>
+      </div>
+      <div class="end-row">
+        <span class="note">Enter to send · Shift+Enter for a new line</span>
+        <button class="endbtn" id="btnVoice" onclick="toggleVoice()" title="Customer speaks replies aloud" aria-label="Toggle customer voice">🔊 Voice off</button>
+        <button class="endbtn" id="btnEnd" onclick="endSession()">End &amp; get my debrief</button>
+      </div>
+    </div>
+
+    <aside class="notepad" aria-label="Live scorecard">
+      <h3>The notepad</h3>
+      <div class="np-sub">Scored live, question by question</div>
+      <div class="np-legend"><span>★ = pain starred</span><span>? = trial close asked</span></div>
+      <div id="qList"></div>
+      <div class="np-beats" id="beatList"></div>
+      <div class="np-total"><span class="n" id="totScore">–</span><span class="d">/ 100 running total</span></div>
+    </aside>
+  </div>
+</div>
+
+<script>
+/* =====================================================================
+   STATE
+===================================================================== */
+const SECTIONS = [
+  ["setup","Setup & frame"],
+  ["lived","How long in the home"],
+  ["stay","Plan to stay"],
+  ["gas","Worst gas bill"],
+  ["electric","Worst electric bill"],
+  ["allergies","Allergies"],
+  ["dust","Dust"],
+  ["hotcold","Hot / cold spots"],
+  ["dryskin","Dry skin"],
+  ["investment","Investment"]
+];
+const BEATS = [
+  ["notes_permission","Notes permission"],
+  ["design_frame","Designing-together frame"],
+  ["quotes_reframe","Quotes reframe"],
+  ["labels_values","Labels values out loud"],
+  ["benchmark_math","Benchmark math"],
+  ["calibration_story","Calibration story"],
+  ["open_loop","Open loop held"],
+  ["absent_dm","Absent decision-maker"],
+  ["anti_pressure","Anti-pressure frame"],
+  ["silence","Silence survived"]
+];
+
+let state = null;
+
+function freshState(persona, mode, name){
+  const sections = {};
+  SECTIONS.forEach(([k])=>sections[k]={score:null,star:false,q:false});
+  const beats = {};
+  BEATS.forEach(([k])=>beats[k]=false);
+  return {
+    persona, mode, name: name||"Consultant",
+    history: [],          // [{role, content}] raw API history
+    sections, beats,
+    current: "setup",
+    ended: false,
+    startedAt: new Date().toISOString()
+  };
+}
+
+/* =====================================================================
+   PERSONA HIDDEN SHEETS (sent to the model, never shown to the trainee)
+===================================================================== */
+const PERSONAS = {
+rick: `PERSONA: Rick & Karen, Naperville IL. 2,000 sq ft colonial, 22 years. Son Ben (27, Denver) raised here; basement finished for his high-school friends (Karen's rule: be the house the kids come to). FOREVER HOME — Karen's line: "they'll have to carry me out." HIDDEN PAINS (surface only when earned): (1) $290 worst January gas bill at 68°F (benchmark norm $200 → $90/mo gap). (2) $215 August electric — a TRAP: bill is LOW because they SURRENDERED — upstairs unbearable, they stopped running AC after 7pm and bought a loud window unit ("the helicopter") 12 years ago, right after the basement finish rerouted ductwork (root cause connecting all pains). (3) Allergies — first answer is a flat "we're not allergy people"; truth: Karen buys Costco Zyrtec every April, windows sealed all spring, AC runs at 70°F outside to keep pollen out. Yields only to a calibration story. (4) Dust — Sunday cleaning routine, name-on-the-TV-stand by Wednesday, black furniture regret; got worse after the basement remodel. (5) Dry skin — Karen dismisses as "that's just winter"; truth: 3 Costco lotion stations (kitchen sink, bathroom, nightstand), static shocks Nov–Mar. Karen is in the next room early on and joins mid-conversation — bring her in naturally around the dust question. Both warm; they reward genuine affirmation fast. Investment: Rick self-selects $200–400/mo bracket, "top end would have to really be worth it," after a 4–5 second pause.`,
+dave: `PERSONA: Dave, early 40s, Bolingbrook IL ranch, 1,400 sq ft, 6 years in — FIRST house (prior: 1-bed condo in Forest Park, left because of shared-wall noise; QUIET is a core value). Wife Priya works at Edward Hospital — ABSENT DECISION-MAKER; she sent him ("Priya's coworker wouldn't shut up about you" — referral). Dave opens transactional: two bids in a folder on the counter, "can you beat a number," original furnace makes a whoomp-whoomp at startup audible through the closed bedroom door. He rushes, checks the clock, gives short answers. HIDDEN PAINS: (1) $180 worst winter gas — NEAR the norm ($140 for 1,400 sqft → small gap, a trap: money is NOT his pain, noise and the next items are). (2) Master bedroom cold all winter — space heater Priya worries about. (3) They bought a humidifier off Amazon and abandoned it in a closet (surrendered pain). (4) BIG hidden reveal, only if consultant spirals on family/future: Priya is due in November — the small third bedroom over the garage is always the wrong temperature and it's going to be the NURSERY. This transforms the appointment; Dave gets quiet and serious when it comes out. (5) Allergies/dust: mild, dismissive, but Priya sneezes every morning ("she says it's my fault for never dusting"). Dave punishes stalling and repeated beats; rewards efficiency and confident structure. Investment: deflects first ("what SHOULD it cost?") — holds until consultant gives anti-pressure frame + brackets; then picks $200–400 but says "Priya has to be in that conversation." Ending must handle the absent-DM: a strong run books the follow-up when Priya is home.`,
+elaine: `PERSONA: Elaine, 71, Wheaton IL, 1,800 sq ft, 34 years. Widowed 3 years — husband Gene handled everything mechanical; the furnace was "Gene's department" (emotional weight — handle with care, never exploit). FOREVER home, strongly. Fixed income; deeply afraid of being taken advantage of — a contractor once pressured her and she still tells the story. She PUNISHES: solution talk during discovery, any pressure, rushed pacing, unexplained jargon. She REWARDS: patience, permission-asking, the anti-pressure frame (visible relief), plain language. HIDDEN PAINS: (1) $260 worst winter gas — but she keeps the thermostat at 64 wearing sweaters and blankets to save money (SURRENDERED comfort; norm for 1,800 sqft ≈ $180 — the gap exists even while she freezes). (2) She closed off two rooms in winter, including Gene's old office. (3) Dust — dismisses it, then admits her cleaning lady comments on it. (4) Dry skin — severe, "old lady skin" self-dismissal; humidifier Gene bought years ago that she doesn't know how to run. (5) Decision style: won't commit without her son Mark (Schaumburg) — a strong run treats Mark as an ally and offers to include him, never routes around him. Investment: freezes at the question; the brackets + anti-pressure frame are the ONLY path — she picks $100–200/mo and says "Mark will want to look at everything." Warm underneath; if trust is earned she shares more than any persona.`,
+surprise: `PERSONA: INVENT a brand-new Chicagoland homeowner for this run — new name(s), suburb, home size/age, family situation, tenure. Give them: 1–2 personality traits that shape how they answer (guarded, chatty, skeptical, distracted…), a stated reason for the appointment, and 4–6 HIDDEN pains across the survey categories, at least one "surrendered pain" (a workaround they've normalized), at least one dismissal that requires a calibration story, and one meaningful hidden reveal that only spiraling uncovers. Include realistic worst-month utility numbers and square footage so benchmark math works ($100 per 1,000 sq ft norm). Decide up front (silently) whether it's a forever home or stepping stone, and whether a decision-maker is absent. Keep it all consistent for the whole session.`
+};
+
+/* =====================================================================
+   SYSTEM PROMPT — the methodology the model roleplays and scores against
+===================================================================== */
+function systemPrompt(){
+  return `You are running a live comfort-survey role-play trainer for comfort consultants at Leslie Heating, Cooling, Plumbing & Electric (Chicagoland residential HVAC). You play TWO roles at once:
+(A) THE CUSTOMER — fully in character per the persona sheet below. Short first answers. Pains stay hidden until the consultant EARNS them with the techniques below. Include brief stage directions in *asterisks*. Never break character inside the "customer" field. React realistically: good technique opens you up; skipped beats, pressure, or solution-talk cools you down.
+(B) THE RIDE-ALONG COACH — expert on the Leslie/Nexstar comfort-survey methodology. Coach like a great field trainer: name the technique, quote the consultant's own words, give the concrete fix, celebrate correct beats, keep momentum. 2–6 sentences per turn. In "clean" mode, leave coaching empty every turn and save everything for the debrief.
+
+THE METHODOLOGY YOU SCORE AGAINST
+Sequence (10 sections, in order): setup → lived (how long in home) → stay (plan to stay) → gas (worst winter gas bill) → electric (worst summer electric bill) → allergies → dust → hotcold (hot/cold spots) → dryskin → investment.
+SETUP beats: designing-together frame ("we're designing this system together…"); permission to take notes; money framed as the customer's protection, not the topic. If the customer mentions other quotes/bids: affirm it warmly, never flinch, promise a different experience — once it lands, never repeat it.
+CORE TECHNIQUES:
+- SPIRAL: never accept the first answer. Minimum one follow-up per question; dig for family, story, values, and vivid physical detail (the "lotion stations" standard — a specific image in this specific house, captured verbatim).
+- Affirm genuinely and often; label values OUT LOUD while writing ("I'm writing down that this is home-home for you two").
+- STAY question: capture their exact words (the warranty tie-back later). ASK, don't tell.
+- BENCHMARK (money questions): $100 per 1,000 sq ft is a normal WORST month. Direction: square footage → expected number said out loud → their actual → the GAP in dollars per month. Rule out thermostat behavior before blaming equipment. WATCH THE TRAP: a low bill can hide SURRENDERED PAIN (they stopped trying to be comfortable) — the dig matters more than the math there.
+- EVERY PAIN, four beats: label it in THEIR words → asterisk it visibly ("I'm putting a star next to this") → TRIAL CLOSE as a QUESTION ("Would it make sense to have me look at ___ while I'm here?") → collect the spoken yes. A statement instead of a question = missed beat. The skeleton is identical every time.
+- CALIBRATION STORY at dismissal moments ("that's just spring", "that's just winter", "old lady skin"): normalize anonymously ("almost nobody calls themselves allergy people, but then I hear about…"), end with a question, then silence. Fire it AT the dismissal.
+- OPEN LOOP: never diagnose at the table. When the customer connects dots or asks "is it all the same problem?": affirm the suspicion, promise the walkthrough ("that's exactly what I want to find out"), keep the loop open.
+- ABSENT DECISION-MAKER: name them, gather THEIR pains through the present spouse, and make sure the path forward includes them (a presentation without the decision-maker is a miss).
+- NO SOLUTION TALK in discovery. "A system that would eliminate…" = presenting = drift. Discovery only ever asks permission to investigate.
+- INVESTMENT: anti-pressure frame first ("I'm asking so I don't waste your time on options that don't fit") → bracket ranges out loud, slowly ($100–200 / $200–400 / $400–600 / $600–900 per month) → "where would you be comfortable landing?" → SILENCE. The consultant must not speak first. Capture their bracket + qualifiers verbatim.
+
+SCORING
+- Each section: 1–10, live, updated as they work it. Score reflects: sequence respected, spiral depth, values labeled, the four beats, technique fit for that question. Missing star or trial-close question caps a pain question at 6. Solution-drift, skipped spiral, telling-not-asking all cost points.
+- star=true when they visibly asterisk that section's pain; q=true when the trial close is asked AS A QUESTION and a spoken yes is collected.
+- Global beats flip true once genuinely earned (see keys below). Never flip a beat for a near-miss; coaching should say what was missing.
+- Be a fair but demanding grader — 8+ means ride-along-ready on that question.
+
+OUTPUT FORMAT — CRITICAL
+Respond with ONLY a valid JSON object. No markdown fences, no text outside the JSON. Schema:
+{
+ "customer": "customer's in-character reply with *stage directions*",
+ "coaching": "coach note ('' in clean mode)",
+ "current_section": "setup|lived|stay|gas|electric|allergies|dust|hotcold|dryskin|investment|done",
+ "section_updates": { "<sectionKey>": {"score": <1-10>, "star": <bool>, "q": <bool>} },
+ "beat_updates": { "<beatKey>": true },
+ "debrief": null
+}
+Only include sections/beats that changed this turn. Beat keys: notes_permission, design_frame, quotes_reframe, labels_values, benchmark_math, calibration_story, open_loop, absent_dm, anti_pressure, silence.
+When you receive the literal message "END_SESSION": set "customer" to a brief natural goodbye in character, "coaching" to "", and "debrief" to a full markdown debrief: per-question scores with one-line notes, beats earned/missed, the 2–3 highest-leverage drill items for next time, and what verbatim customer quotes the consultant banked for the presentation (tie-backs). Keep the debrief honest and specific.
+
+MODE: ${state.mode==="clean" ? "clean (no live coaching — coaching field must be empty every turn until the debrief)" : "live (coach every turn)"}
+CONSULTANT NAME: ${state.name}
+
+${PERSONAS[state.persona]}
+
+FIRST TURN: The consultant has just arrived. Open the scene as the customer — greeting at the door, one or two lines that set their personality and (if the persona calls for it) their opening position. Do not coach yet unless there is something to coach.`;
+}
+
+/* =====================================================================
+   API
+===================================================================== */
+// Backend URL — the Apps Script deployment this page talks to.
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwbZ7lGdjEOCkbRYx19J2AZeaOl4UtJ22ZyoaOwpV7GmdrSF5xc0Er6lH7m7vhQhoY6/exec";
+async function gs(fn){
+  const args = Array.prototype.slice.call(arguments,1);
+  const res = await fetch(SCRIPT_URL, {
+    method: "POST",
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
+    body: JSON.stringify({ action: fn, body: args[0], code: args[1] || "" })
+  });
+  if(!res.ok) throw new Error("HTTP " + res.status);
+  const j = await res.json();
+  if(!j.ok) throw new Error(j.error || "server error");
+  return j.result;
+}
+async function callModel(userText){
+  state.history.push({role:"user", content:userText});
+  const body = {
+    model: "claude-sonnet-4-6",
+    max_tokens: 1000,
+    system: systemPrompt(),
+    messages: state.history
+  };
+  const raw = await gs("chat", JSON.stringify(body), state.teamCode||"");
+  if(raw==="BAD_CODE") throw new Error("TEAMCODE");
+  state.history.push({role:"assistant", content:raw});
+  const clean = raw.replace(/```json|```/g,"").trim();
+  const start = clean.indexOf("{");
+  const end = clean.lastIndexOf("}");
+  if(start===-1||end===-1) throw new Error("bad JSON");
+  return JSON.parse(clean.slice(start,end+1));
+}
+
+/* =====================================================================
+   UI helpers
+===================================================================== */
+const $ = id=>document.getElementById(id);
+function show(id){ document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active")); $(id).classList.add("active"); }
+function addMsg(kind, who, text){
+  const d=document.createElement("div");
+  d.className="msg "+kind;
+  if(who){ const w=document.createElement("div"); w.className="who"; w.textContent=who; d.appendChild(w); }
+  const b=document.createElement("div"); b.textContent=text; d.appendChild(b);
+  $("feed").appendChild(d);
+  $("feed").scrollTop = $("feed").scrollHeight;
+  return d;
+}
+function addDebrief(md){
+  if(state) state.debriefMd = md;
+  const d=document.createElement("div"); d.className="msg debrief";
+  d.innerHTML='<div class="who">Ride-along debrief</div>';
+  const b=document.createElement("div");
+  // minimal markdown: bold + headings + bullets
+  const html = md
+    .replace(/&/g,"&amp;").replace(/</g,"&lt;")
+    .replace(/^### (.*)$/gm,"<strong style='display:block;margin:10px 0 2px;font-size:15px'>$1</strong>")
+    .replace(/^## (.*)$/gm,"<strong style='display:block;margin:12px 0 2px;font-size:16px'>$1</strong>")
+    .replace(/^# (.*)$/gm,"<strong style='display:block;margin:12px 0 2px;font-size:17px'>$1</strong>")
+    .replace(/\*\*(.+?)\*\*/g,"<strong>$1</strong>")
+    .replace(/^\s*[-•] (.*)$/gm,"&nbsp;&nbsp;• $1")
+    .replace(/\n/g,"<br>");
+  b.innerHTML=html; d.appendChild(b);
+  $("feed").appendChild(d); $("feed").scrollTop=$("feed").scrollHeight;
+}
+function renderNotepad(){
+  const list=$("qList"); list.innerHTML="";
+  let total=0, scoredAny=false;
+  SECTIONS.forEach(([k,label])=>{
+    const s=state.sections[k];
+    const row=document.createElement("div");
+    row.className="qrow"+(state.current===k?" current":"");
+    row.innerHTML =
+      `<span class="star${s.star?" on":""}">★</span>`+
+      `<span class="ask${s.q?" on":""}">?</span>`+
+      `<span class="q-name">${label}</span>`+
+      `<span class="score${s.score!=null?" scored":""}">${s.score!=null?s.score+"/10":"–"}</span>`;
+    list.appendChild(row);
+    if(s.score!=null){ total+=s.score; scoredAny=true; }
+  });
+  const beatWrap=$("beatList"); beatWrap.innerHTML="";
+  BEATS.forEach(([k,label])=>{
+    const c=document.createElement("span");
+    c.className="beat"+(state.beats[k]?" on":"");
+    c.textContent=label;
+    beatWrap.appendChild(c);
+  });
+  $("totScore").textContent = scoredAny? total : "–";
+}
+function applyUpdates(j){
+  if(j.current_section) state.current=j.current_section;
+  if(j.section_updates){
+    for(const [k,v] of Object.entries(j.section_updates)){
+      if(!state.sections[k]) continue;
+      if(v.score!=null) state.sections[k].score=Math.max(1,Math.min(10,Math.round(v.score)));
+      if(v.star!=null) state.sections[k].star=!!v.star;
+      if(v.q!=null) state.sections[k].q=!!v.q;
+    }
+  }
+  if(j.beat_updates){
+    for(const [k,v] of Object.entries(j.beat_updates)){
+      if(k in state.beats && v) state.beats[k]=true;
+    }
+  }
+  renderNotepad();
+}
+function setBusy(b){
+  $("btnSend").disabled=b; $("btnEnd").disabled=b;
+  $("typing").classList.toggle("show", b);
+}
+
+/* =====================================================================
+   FLOW
+===================================================================== */
+let pickedPersona=null;
+function pickPersona(el){
+  document.querySelectorAll(".persona").forEach(p=>p.classList.remove("selected"));
+  el.classList.add("selected");
+  pickedPersona=el.dataset.p;
+  $("btnStart").disabled=false;
+}
+let pickedMode="live";
+function setMode(m){
+  pickedMode=m;
+  $("modeLive").classList.toggle("on",m==="live");
+  $("modeClean").classList.toggle("on",m==="clean");
+  $("modeHint").textContent = m==="live"
+    ? "Live coaching: the coach breaks in after every exchange — names the technique, quotes your line, gives the fix. Best while the beats are still new."
+    : "Clean run: no coaching until the end. You feel the real rhythm; the full debrief lands when you end the session. Best once the beats are automatic.";
+}
+
+async function startSession(){
+  state = freshState(pickedPersona, pickedMode, $("inpName").value.trim());
+  state.teamCode = $("inpCode").value.trim();
+  $("feed").innerHTML="";
+  $("sessTitle").textContent = "At the kitchen table — " + {rick:"Rick & Karen, Naperville",dave:"Dave, Bolingbrook",elaine:"Elaine, Wheaton",surprise:"Mystery customer"}[state.persona];
+  $("btnNew").style.display="inline-block";
+  renderNotepad();
+  show("scrSession");
+  addMsg("system","", "The door opens…");
+  setBusy(true);
+  try{
+    const j = await callModel("BEGIN_SESSION — open the scene.");
+    if(j.customer){ addMsg("customer","Customer", j.customer); speakCustomer(j.customer); }
+    if(j.coaching) addMsg("coach","Coach", j.coaching);
+    applyUpdates(j);
+  }catch(e){
+    if(e.message==="TEAMCODE") addMsg("error","","That team code isn't right — hit New run and re-enter it.");
+    else addMsg("error","", "Couldn't reach the customer (connection issue). Start a new run to retry.");
+    state.history = state.history.slice(0,-1); // drop failed turn
+  }
+  setBusy(false);
+  $("inpMsg").focus();
+}
+
+let voiceOn=false, chosenVoice=null;
+function pickVoice(){
+  const vs=speechSynthesis.getVoices();
+  if(!vs.length) return null;
+  const prefs=["Google US English","Samantha","Microsoft Aria","Microsoft Jenny","Microsoft David","Google UK English Female"];
+  for(const p of prefs){ const v=vs.find(v=>v.name.indexOf(p)===0); if(v) return v; }
+  return vs.find(v=>v.lang&&v.lang.indexOf("en")===0)||vs[0];
+}
+if("speechSynthesis" in window){
+  speechSynthesis.onvoiceschanged=function(){ chosenVoice=pickVoice(); };
+  chosenVoice=pickVoice();
+}
+function toggleVoice(){
+  if(!("speechSynthesis" in window)){
+    addMsg("error","","This browser doesn't support voice playback.");
+    return;
+  }
+  voiceOn=!voiceOn;
+  $("btnVoice").textContent=voiceOn?"🔊 Voice on":"🔊 Voice off";
+  $("btnVoice").style.background=voiceOn?"var(--maroon)":"";
+  $("btnVoice").style.color=voiceOn?"#fff":"";
+  try{ localStorage.setItem("customerVoice", voiceOn?"1":"0"); }catch(e){}
+  if(!voiceOn) speechSynthesis.cancel();
+  else speakCustomer("Voice is on. I'll read the customer's replies out loud.");
+}
+try{ if(localStorage.getItem("customerVoice")==="1"){ voiceOn=true; } }catch(e){}
+function speakCustomer(text){
+  if(!voiceOn||!("speechSynthesis" in window)) return;
+  speechSynthesis.cancel();
+  const clean=text.replace(/\*+/g,"").replace(/_{1,2}/g,"").replace(/\[[^\]]*\]/g,"").replace(/\s+/g," ").trim();
+  if(!clean) return;
+  const u=new SpeechSynthesisUtterance(clean);
+  if(!chosenVoice) chosenVoice=pickVoice();
+  if(chosenVoice) u.voice=chosenVoice;
+  u.rate=1.0; u.pitch=1.0;
+  speechSynthesis.speak(u);
+}
+
+let rec=null, micOn=false;
+function micSupported(){ return !!(window.SpeechRecognition||window.webkitSpeechRecognition); }
+function syncVoiceBtn(){
+  const b=document.getElementById("btnVoice");
+  if(!b) return;
+  b.textContent=voiceOn?"🔊 Voice on":"🔊 Voice off";
+  b.style.background=voiceOn?"var(--maroon)":"";
+  b.style.color=voiceOn?"#fff":"";
+}
+document.addEventListener("DOMContentLoaded", syncVoiceBtn);
+function toggleMic(){
+  if(!micSupported()){
+    addMsg("error","","This browser doesn't support dictation — use Chrome, or press Win+H (Windows) / the mic key on your phone keyboard to dictate into the box.");
+    return;
+  }
+  if(micOn){ stopMic(); return; }
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  rec=new SR();
+  rec.lang="en-US"; rec.continuous=true; rec.interimResults=true;
+  let base=$("inpMsg").value;
+  rec.onresult=function(e){
+    let interim="", final="";
+    for(let i=e.resultIndex;i<e.results.length;i++){
+      const t=e.results[i][0].transcript;
+      if(e.results[i].isFinal) final+=t; else interim+=t;
+    }
+    if(final) base=(base?base.trimEnd()+" ":"")+final.trim();
+    $("inpMsg").value=base+(interim?(base?" ":"")+interim:"");
+  };
+  rec.onerror=function(e){
+    stopMic();
+    if(e.error==="not-allowed"||e.error==="service-not-allowed")
+      addMsg("error","","Microphone was blocked. If the browser never asked for permission, this page's wrapper may not allow mic access — use Win+H (Windows dictation) or your phone keyboard's mic instead; both type straight into the box.");
+    else if(e.error!=="aborted")
+      addMsg("error","","Dictation hiccuped ("+e.error+") — tap the mic to try again.");
+  };
+  rec.onend=function(){ if(micOn) stopMic(); };
+  try{ rec.start(); micOn=true; $("btnMic").style.background="var(--orange)"; $("btnMic").textContent="⏺"; }
+  catch(e){ addMsg("error","","Couldn't start the mic — tap it again."); }
+}
+function stopMic(){
+  micOn=false;
+  try{ if(rec) rec.stop(); }catch(e){}
+  $("btnMic").style.background=""; $("btnMic").textContent="🎤";
+}
+
+async function sendMsg(){
+  if(micOn) stopMic();
+  if("speechSynthesis" in window) speechSynthesis.cancel();
+  const t=$("inpMsg").value.trim();
+  if(!t || !state || state.ended) return;
+  $("inpMsg").value="";
+  addMsg("consultant", state.name, t);
+  setBusy(true);
+  try{
+    const j = await callModel(t);
+    if(j.customer){ addMsg("customer","Customer", j.customer); speakCustomer(j.customer); }
+    if(j.coaching) addMsg("coach","Coach", j.coaching);
+    applyUpdates(j);
+    if(j.debrief){ addDebrief(j.debrief); await finishAndSave(); }
+  }catch(e){
+    if(e.message==="TEAMCODE") addMsg("error","","That team code isn't right — start a New run and re-enter it.");
+    else addMsg("error","", "That didn't go through — the connection hiccuped. Your line wasn't lost; press Enter to resend it.");
+    $("inpMsg").value=t;
+    // remove the failed user turn + nothing else
+    if(state.history.length && state.history[state.history.length-1].role==="user") state.history.pop();
+  }
+  setBusy(false);
+  $("inpMsg").focus();
+}
+
+async function endSession(){
+  if(!state || state.ended) return;
+  addMsg("system","","Wrapping up the appointment…");
+  setBusy(true);
+  try{
+    const j = await callModel("END_SESSION");
+    if(j.customer){ addMsg("customer","Customer", j.customer); speakCustomer(j.customer); }
+    if(j.debrief) addDebrief(j.debrief);
+    applyUpdates(j);
+    await finishAndSave();
+  }catch(e){
+    addMsg("error","","Couldn't generate the debrief just now. Try \"End & get my debrief\" again.");
+    if(state.history.length && state.history[state.history.length-1].role==="user") state.history.pop();
+  }
+  setBusy(false);
+}
+
+async function finishAndSave(){
+  state.ended=true;
+  $("btnEnd").textContent="Session ended";
+  $("btnEnd").disabled=true;
+  let total=0; SECTIONS.forEach(([k])=>{ if(state.sections[k].score) total+=state.sections[k].score; });
+  const rec={
+    date:new Date().toISOString(),
+    name:state.name, persona:state.persona, mode:state.mode,
+    total, sections:state.sections, beats:state.beats
+  };
+  try{
+    await gs("logRun", JSON.stringify(rec), state.teamCode||"");
+    addMsg("system","","Scored and logged to the coach sheet ✓");
+  }catch(e){
+    addMsg("error","","Session finished but couldn't reach the coach sheet — use the buttons below to save your results, then tell your manager.");
+  }
+  addExportButtons();
+}
+
+function addExportButtons(){
+  const d=document.createElement("div"); d.className="msg system";
+  d.style.display="flex"; d.style.gap="8px"; d.style.flexWrap="wrap"; d.style.background="none"; d.style.border="none";
+  const b1=document.createElement("button"); b1.className="endbtn"; b1.textContent="Print / save PDF scorecard"; b1.onclick=printScorecard;
+  const b2=document.createElement("button"); b2.className="endbtn"; b2.textContent="Copy summary for Teams"; b2.onclick=copySummary;
+  d.appendChild(b1); d.appendChild(b2);
+  $("feed").appendChild(d); $("feed").scrollTop=$("feed").scrollHeight;
+}
+
+function personaLabel(p){
+  return ({rick:"Rick & Karen",dave:"Dave & Priya",elaine:"Elaine",surprise:"Surprise customer"})[p]||p;
+}
+
+function buildSummaryText(){
+  let total=0, stars=0, qs=0;
+  const lines=[];
+  SECTIONS.forEach(([k,label])=>{
+    const sec=state.sections[k]||{};
+    if(sec.score) total+=sec.score;
+    if(sec.star) stars++;
+    if(sec.q) qs++;
+    lines.push("  "+label+": "+(sec.score!=null?sec.score+"/10":"—")+(sec.star?" ★":"")+(sec.q?" [?]":""));
+  });
+  const beatsOn=BEATS.filter(([k])=>state.beats[k]).map(([,l])=>l);
+  const beatsOff=BEATS.filter(([k])=>!state.beats[k]).map(([,l])=>l);
+  return "COMFORT SURVEY TRAINER — RESULTS\n"
+    +"Consultant: "+(state.name||"(no name)")+"\n"
+    +"Date: "+new Date().toLocaleString()+"\n"
+    +"Customer: "+personaLabel(state.persona)+"  |  Mode: "+(state.mode==="clean"?"Clean run":"Live coaching")+"\n"
+    +"TOTAL: "+total+"/100   Stars: "+stars+"/6   Trial-close questions: "+qs+"\n\n"
+    +"Sections:\n"+lines.join("\n")+"\n\n"
+    +"Beats earned: "+(beatsOn.join(", ")||"none")+"\n"
+    +"Beats missed: "+(beatsOff.join(", ")||"none");
+}
+
+async function copySummary(){
+  const text=buildSummaryText();
+  try{
+    await navigator.clipboard.writeText(text);
+    addMsg("system","","Summary copied — paste it into Teams for your manager.");
+  }catch(e){
+    const ta=document.createElement("textarea"); ta.value=text; document.body.appendChild(ta);
+    ta.select();
+    try{ document.execCommand("copy"); addMsg("system","","Summary copied — paste it into Teams for your manager."); }
+    catch(e2){ addMsg("error","","Couldn't copy automatically — screenshot your notepad instead."); }
+    document.body.removeChild(ta);
+  }
+}
+
+function printScorecard(){
+  let total=0; SECTIONS.forEach(([k])=>{ if(state.sections[k].score) total+=state.sections[k].score; });
+  const rows=SECTIONS.map(([k,label])=>{
+    const sec=state.sections[k]||{};
+    return "<tr><td>"+label+"</td><td style='text-align:center'>"+(sec.score!=null?sec.score+"/10":"—")
+      +"</td><td style='text-align:center'>"+(sec.star?"★":"")+"</td><td style='text-align:center'>"+(sec.q?"✓":"")+"</td></tr>";
+  }).join("");
+  const beats=BEATS.map(([k,l])=>"<span style='display:inline-block;margin:2px 6px 2px 0;padding:3px 10px;border-radius:12px;border:1px solid #999;"
+    +(state.beats[k]?"background:#e6f7ec;border-color:#1a7a3c":"color:#999")+"'>"+l+(state.beats[k]?" ✓":"")+"</span>").join("");
+  const deb=(state.debriefMd||"").replace(/&/g,"&amp;").replace(/</g,"&lt;")
+    .replace(/^#+ (.*)$/gm,"<strong>$1</strong>").replace(/\*\*(.+?)\*\*/g,"<strong>$1</strong>").replace(/\n/g,"<br>");
+  const w=window.open("","_blank");
+  if(!w){ addMsg("error","","Pop-up blocked — allow pop-ups for this page and try again."); return; }
+  w.document.write("<html><head><title>Comfort Survey Scorecard — "+(state.name||"")+"</title>"
+    +"<style>body{font-family:Arial;font-size:13px;color:#222;max-width:700px;margin:24px auto;padding:0 16px}"
+    +"h1{font-size:19px}h2{font-size:15px;margin:18px 0 6px}table{width:100%;border-collapse:collapse}"
+    +"td,th{border:1px solid #ccc;padding:5px 8px;font-size:12px}th{background:#f0f0f0;text-align:left}"
+    +"@media print{button{display:none}}</style></head><body>"
+    +"<h1>Comfort Survey Trainer — Scorecard</h1>"
+    +"<p><strong>"+(state.name||"(no name)")+"</strong> &nbsp;|&nbsp; "+new Date().toLocaleString()
+    +" &nbsp;|&nbsp; Customer: "+personaLabel(state.persona)+" &nbsp;|&nbsp; "+(state.mode==="clean"?"Clean run":"Live coaching")+"</p>"
+    +"<p style='font-size:16px'><strong>Total: "+total+"/100</strong></p>"
+    +"<h2>Sections</h2><table><tr><th>Section</th><th>Score</th><th>Pain starred</th><th>Trial close as question</th></tr>"+rows+"</table>"
+    +"<h2>Global beats</h2><div>"+beats+"</div>"
+    +(deb?"<h2>Ride-along debrief</h2><div style='background:#fbf6e9;border:1px solid #ddd;border-radius:8px;padding:12px'>"+deb+"</div>":"")
+    +"<button onclick='window.print()' style='margin-top:16px;padding:8px 16px'>Print / Save as PDF</button>"
+    +"</body></html>");
+  w.document.close();
+}
+
+function resetToSetup(){
+  show("scrSetup");
+}
+</script>
+</body>
+</html>
