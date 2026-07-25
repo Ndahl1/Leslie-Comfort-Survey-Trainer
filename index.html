@@ -281,7 +281,7 @@
       <div class="np-legend"><span>★ = pain starred</span><span>? = trial close asked</span></div>
       <div id="qList"></div>
       <div class="np-beats" id="beatList"></div>
-      <div class="np-total"><span class="n" id="totScore">–</span><span class="d">/ 100 running total</span></div>
+      <div class="np-total"><span class="n" id="totScore">–</span><span class="d">/ <span id="maxScore">110</span> running total</span></div>
     </aside>
   </div>
 </div>
@@ -291,6 +291,7 @@
    STATE
 ===================================================================== */
 const SECTIONS = [
+  ["arrival","Arrival at the door"],
   ["setup","Setup & frame"],
   ["lived","How long in the home"],
   ["stay","Plan to stay"],
@@ -303,6 +304,9 @@ const SECTIONS = [
   ["investment","Investment"]
 ];
 const BEATS = [
+  ["door_intro","Greeting + card"],
+  ["floor_protectors","Floor protectors on"],
+  ["seated_start","Earned the sit-down"],
   ["notes_permission","Notes permission"],
   ["design_frame","Designing-together frame"],
   ["quotes_reframe","Quotes reframe"],
@@ -315,6 +319,8 @@ const BEATS = [
   ["silence","Silence survived"]
 ];
 
+const MAX_TOTAL = SECTIONS.length * 10;   // auto-adjusts if sections are added or removed
+
 let state = null;
 
 function freshState(persona, mode, name){
@@ -326,7 +332,7 @@ function freshState(persona, mode, name){
     persona, mode, name: name||"Consultant",
     history: [],          // [{role, content}] raw API history
     sections, beats,
-    current: "setup",
+    current: "arrival",
     ended: false,
     startedAt: new Date().toISOString()
   };
@@ -351,8 +357,16 @@ function systemPrompt(){
 (B) THE RIDE-ALONG COACH — expert on the Leslie/Nexstar comfort-survey methodology. Coach like a great field trainer: name the technique, quote the consultant's own words, give the concrete fix, celebrate correct beats, keep momentum. 2–6 sentences per turn. In "clean" mode, leave coaching empty every turn and save everything for the debrief.
 
 THE METHODOLOGY YOU SCORE AGAINST
-Sequence (10 sections, in order): setup → lived (how long in home) → stay (plan to stay) → gas (worst winter gas bill) → electric (worst summer electric bill) → allergies → dust → hotcold (hot/cold spots) → dryskin → investment.
-SETUP beats: designing-together frame ("we're designing this system together…"); permission to take notes; money framed as the customer's protection, not the topic. If the customer mentions other quotes/bids: affirm it warmly, never flinch, promise a different experience — once it lands, never repeat it.
+Sequence (11 sections, in order): arrival (at the front door) → setup → lived (how long in home) → stay (plan to stay) → gas (worst winter gas bill) → electric (worst summer electric bill) → allergies → dust → hotcold (hot/cold spots) → dryskin → investment.
+
+ARRIVAL — THE DOOR IS FOR LOGISTICS ONLY. The scene opens on the doorstep, NOT at the table. Required beats, in this order:
+1. Greeting → their name → their company (Leslie) → hands over a BUSINESS CARD. The card goes to the homeowner at the door, every time — it is a habit being drilled, not an optional nicety.
+2. Parking check — offers to move the CAR if it's in anyone's way ("Am I parked okay out front?"). Always a car, never a truck or van.
+3. FLOOR PROTECTORS (shoe covers) go on at the threshold, in the homeowner's view, BEFORE stepping onto their flooring. Doing it out of sight or after walking in is a partial miss; skipping it entirely caps arrival at 4.
+4. Requests the sit-down — asks whether they can sit down together somewhere, kitchen table or wherever the homeowner prefers, to begin. The consultant must EARN the seat by asking; walking in and starting is a miss.
+HARD RULE — NO DISCOVERY AT THE DOOR. Not one survey question until the consultant is seated. "How long have you lived here?", any utility/comfort/pain question, or any spiral asked on the doorstep is a SEQUENCE VIOLATION: as the customer, answer short, guarded, and stay standing; as the coach, flag it as a missed setup, never praise it as a strong open. It caps arrival at 5 and costs a point on setup. Light social small talk while walking to the table is fine and is NOT discovery.
+Arrival is not a pain question — star and q stay false for it. Score it on the four beats above plus warmth and composure.
+SETUP beats (these begin once seated): designing-together frame ("we're designing this system together…"); permission to take notes; money framed as the customer's protection, not the topic. If the customer mentions other quotes/bids: affirm it warmly, never flinch, promise a different experience — once it lands, never repeat it.
 CORE TECHNIQUES:
 - SPIRAL: never accept the first answer. Minimum one follow-up per question; dig for family, story, values, and vivid physical detail (the "lotion stations" standard — a specific image in this specific house, captured verbatim).
 - Affirm genuinely and often; label values OUT LOUD while writing ("I'm writing down that this is home-home for you two").
@@ -376,12 +390,12 @@ Respond with ONLY a valid JSON object. No markdown fences, no text outside the J
 {
  "customer": "customer's in-character reply with *stage directions*",
  "coaching": "coach note ('' in clean mode)",
- "current_section": "setup|lived|stay|gas|electric|allergies|dust|hotcold|dryskin|investment|done",
+ "current_section": "arrival|setup|lived|stay|gas|electric|allergies|dust|hotcold|dryskin|investment|done",
  "section_updates": { "<sectionKey>": {"score": <1-10>, "star": <bool>, "q": <bool>} },
  "beat_updates": { "<beatKey>": true },
  "debrief": null
 }
-Only include sections/beats that changed this turn. Beat keys: notes_permission, design_frame, quotes_reframe, labels_values, benchmark_math, calibration_story, open_loop, absent_dm, anti_pressure, silence.
+Only include sections/beats that changed this turn. Beat keys: door_intro (greeting + name + company + business card handed over at the door), floor_protectors (shoe covers on at the threshold, in view), seated_start (asked for and got the sit-down before any discovery), notes_permission, design_frame, quotes_reframe, labels_values, benchmark_math, calibration_story, open_loop, absent_dm, anti_pressure, silence.
 When you receive the literal message "END_SESSION": set "customer" to a brief natural goodbye in character, "coaching" to "", and "debrief" to a full markdown debrief: per-question scores with one-line notes, beats earned/missed, the 2–3 highest-leverage drill items for next time, and what verbatim customer quotes the consultant banked for the presentation (tie-backs). Keep the debrief honest and specific.
 
 MODE: ${state.mode==="clean" ? "clean (no live coaching — coaching field must be empty every turn until the debrief)" : "live (coach every turn)"}
@@ -389,7 +403,7 @@ CONSULTANT NAME: ${state.name}
 
 ${PERSONAS[state.persona]}
 
-FIRST TURN: The consultant has just arrived. Open the scene as the customer — greeting at the door, one or two lines that set their personality and (if the persona calls for it) their opening position. Do not coach yet unless there is something to coach.`;
+FIRST TURN: The consultant has just knocked. Open the scene as the customer OPENING THE FRONT DOOR — you are standing in the doorway, not seated. One or two lines that set their personality and (if the persona calls for it) their opening position. Do NOT invite them to sit down and do NOT lead them to the table on your own — the consultant has to ask for it. If they ask, agree naturally in character. Do not coach yet unless there is something to coach.`;
 }
 
 /* =====================================================================
@@ -481,6 +495,7 @@ function renderNotepad(){
     beatWrap.appendChild(c);
   });
   $("totScore").textContent = scoredAny? total : "–";
+  const maxEl=$("maxScore"); if(maxEl) maxEl.textContent = MAX_TOTAL;
 }
 function applyUpdates(j){
   if(j.current_section) state.current=j.current_section;
@@ -497,6 +512,9 @@ function applyUpdates(j){
       if(k in state.beats && v) state.beats[k]=true;
     }
   }
+  // Header follows the scene: doorstep until the sit-down is earned, then the table.
+  const seated = state.beats.seated_start || (state.current && state.current!=="arrival");
+  $("sessTitle").textContent = (seated ? "At the kitchen table — " : "At the front door — ") + (state.who||"");
   renderNotepad();
 }
 function setBusy(b){
@@ -528,7 +546,8 @@ async function startSession(){
   state = freshState(pickedPersona, pickedMode, $("inpName").value.trim());
   state.teamCode = $("inpCode").value.trim();
   $("feed").innerHTML="";
-  $("sessTitle").textContent = "At the kitchen table — " + {rick:"Rick & Karen, Naperville",dave:"Dave, Bolingbrook",elaine:"Elaine, Wheaton",surprise:"Mystery customer"}[state.persona];
+  state.who = {rick:"Rick & Karen, Naperville",dave:"Dave, Bolingbrook",elaine:"Elaine, Wheaton",surprise:"Mystery customer"}[state.persona];
+  $("sessTitle").textContent = "At the front door — " + state.who;
   $("btnNew").style.display="inline-block";
   renderNotepad();
   show("scrSession");
@@ -722,7 +741,7 @@ function buildSummaryText(){
     +"Consultant: "+(state.name||"(no name)")+"\n"
     +"Date: "+new Date().toLocaleString()+"\n"
     +"Customer: "+personaLabel(state.persona)+"  |  Mode: "+(state.mode==="clean"?"Clean run":"Live coaching")+"\n"
-    +"TOTAL: "+total+"/100   Stars: "+stars+"/6   Trial-close questions: "+qs+"\n\n"
+    +"TOTAL: "+total+"/"+MAX_TOTAL+"   Stars: "+stars+"/6   Trial-close questions: "+qs+"\n\n"
     +"Sections:\n"+lines.join("\n")+"\n\n"
     +"Beats earned: "+(beatsOn.join(", ")||"none")+"\n"
     +"Beats missed: "+(beatsOff.join(", ")||"none");
@@ -763,7 +782,7 @@ function printScorecard(){
     +"<h1>Comfort Survey Trainer — Scorecard</h1>"
     +"<p><strong>"+(state.name||"(no name)")+"</strong> &nbsp;|&nbsp; "+new Date().toLocaleString()
     +" &nbsp;|&nbsp; Customer: "+personaLabel(state.persona)+" &nbsp;|&nbsp; "+(state.mode==="clean"?"Clean run":"Live coaching")+"</p>"
-    +"<p style='font-size:16px'><strong>Total: "+total+"/100</strong></p>"
+    +"<p style='font-size:16px'><strong>Total: "+total+"/"+MAX_TOTAL+"</strong></p>"
     +"<h2>Sections</h2><table><tr><th>Section</th><th>Score</th><th>Pain starred</th><th>Trial close as question</th></tr>"+rows+"</table>"
     +"<h2>Global beats</h2><div>"+beats+"</div>"
     +(deb?"<h2>Ride-along debrief</h2><div style='background:#fbf6e9;border:1px solid #ddd;border-radius:8px;padding:12px'>"+deb+"</div>":"")
