@@ -589,20 +589,37 @@ function toggleVoice(){
   $("btnVoice").style.background=voiceOn?"var(--maroon)":"";
   $("btnVoice").style.color=voiceOn?"#fff":"";
   try{ localStorage.setItem("customerVoice", voiceOn?"1":"0"); }catch(e){}
-  if(!voiceOn) speechSynthesis.cancel();
+  if(!voiceOn){
+    speechSynthesis.cancel();
+    if(currentAudio){ currentAudio.pause(); currentAudio=null; }
+  }
   else speakCustomer("Voice is on. I'll read the customer's replies out loud.");
 }
 try{ if(localStorage.getItem("customerVoice")==="1"){ voiceOn=true; } }catch(e){}
-function speakCustomer(text){
-  if(!voiceOn||!("speechSynthesis" in window)) return;
-  speechSynthesis.cancel();
-  const clean=text.replace(/\*+/g,"").replace(/_{1,2}/g,"").replace(/\[[^\]]*\]/g,"").replace(/\s+/g," ").trim();
+let currentAudio=null;
+async function speakCustomer(text){
+  if(!voiceOn) return;
+  // strip *stage directions*, markdown, [brackets] so they aren't spoken aloud
+  const clean=text.replace(/\*[^*]*\*/g,"").replace(/\*+/g,"").replace(/_{1,2}/g,"").replace(/\[[^\]]*\]/g,"").replace(/\s+/g," ").trim();
   if(!clean) return;
-  const u=new SpeechSynthesisUtterance(clean);
-  if(!chosenVoice) chosenVoice=pickVoice();
-  if(chosenVoice) u.voice=chosenVoice;
-  u.rate=1.0; u.pitch=1.0;
-  speechSynthesis.speak(u);
+  try{
+    if(currentAudio){ currentAudio.pause(); currentAudio=null; }
+    if("speechSynthesis" in window) speechSynthesis.cancel();
+    const b64 = await gs("tts", JSON.stringify({ text: clean, persona: (state&&state.persona)||"surprise" }), (state&&state.teamCode)||"");
+    if(b64==="BAD_CODE") throw new Error("TEAMCODE");
+    if(!b64) return;
+    currentAudio = new Audio("data:audio/mpeg;base64," + b64);
+    currentAudio.play();
+  }catch(e){
+    // ElevenLabs unavailable — fall back to the browser voice so training keeps going
+    if(!("speechSynthesis" in window)) return;
+    speechSynthesis.cancel();
+    const u=new SpeechSynthesisUtterance(clean);
+    if(!chosenVoice) chosenVoice=pickVoice();
+    if(chosenVoice) u.voice=chosenVoice;
+    u.rate=1.0; u.pitch=1.0;
+    speechSynthesis.speak(u);
+  }
 }
 
 let rec=null, micOn=false;
